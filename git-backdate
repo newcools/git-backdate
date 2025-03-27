@@ -12,8 +12,9 @@ import sys
 from pathlib import Path
 from subprocess import CalledProcessError, call, check_call, check_output
 
-DATE_CMD = os.environ.get("GIT_BACKDATE_DATE_CMD", "date")
+DEFAULT_DATE_CMD = "date" if sys.platform != "darwin" else "gdate"
 
+DATE_CMD = os.environ.get("GIT_BACKDATE_DATE_CMD", DEFAULT_DATE_CMD)
 
 def call_command(args, check=True, **kwargs):
     logger = logging.getLogger("call_command")
