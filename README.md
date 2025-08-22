@@ -69,7 +69,7 @@ git backdate ROOT "2000-01-01..today"
 Drop the `git-backdate` file somewhere in your `PATH` or wherever you like:
 
 ```shell
-curl https://raw.githubusercontent.com/rixx/git-backdate/main/git-backdate > git-backdate
+curl https://raw.githubusercontent.com/newcools/git-backdate/main/git-backdate > git-backdate
 chmod +x git-backdate
 ```
 
@@ -96,7 +96,7 @@ they represent legal or career advice:
 - Worked an entire weekend for a client, but don't want them to get used to it and start calling you on every weekend.
 - Made some fixes during a boring meeting, but pretended to pay attention throughout.
 - Want to confuse your coworkers by making it look like you were committing code while doing a company-wide presentation.
-- <your reason here, please share with the class>
+- Sometimes I need to switch company device and personal device and I don't want mess with each other, but it did happen. that's why it's handy to auto-change author info as well.
 
 ## Caveats
 
