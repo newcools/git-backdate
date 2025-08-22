@@ -212,7 +212,28 @@ def rewrite_history(
             )
         call_command(commit_args, env=env_vars)
         last_timestamp = timestamp
-        call_command(["git", "rebase", "--continue"])
+        try:
+            call_command(["git", "rebase", "--continue"])
+        except CalledProcessError:
+            # Try to detect merge conflicts and raise a clearer error
+            try:
+                conflicted = (
+                    check_output(["git", "diff", "--name-only", "--diff-filter=U"])  # type: ignore
+                    .decode()
+                    .strip()
+                )
+            except CalledProcessError:
+                conflicted = ""
+            if conflicted:
+                raise RuntimeError(
+                    "Rebase paused due to conflicts after amending a commit.\n"
+                    f"Conflicting files:\n{conflicted}\n\n"
+                    "Resolve conflicts, stage the files (git add <files>), then run:\n"
+                    "  git rebase --continue\n\n"
+                    "Alternatively, abort with:\n  git rebase --abort"
+                )
+            # Unknown failure; re-raise for upstream handling
+            raise
 
 
 def normalize_commit(commit: str) -> str:
