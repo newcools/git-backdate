@@ -123,6 +123,7 @@ def rewrite_history(
     no_business_hours: bool,
     except_days: list[dt.date] | None = None,
     root: bool = False,
+    author: tuple[str, str] | None = None,
 ) -> None:
     logger = logging.getLogger("rewrite_history")
     logger.warning("Rewriting history")
@@ -188,18 +189,28 @@ def rewrite_history(
             date, min_hour=_min_hour, max_hour=_max_hour, greater_than=last_timestamp
         )
 
-        # Set both the author and committer dates
-        call_command(
-            [
-                "git",
-                "commit",
-                "--amend",
-                "--date",
-                timestamp.isoformat(),
-                "--no-edit",
-            ],
-            env=dict(os.environ, GIT_COMMITTER_DATE=timestamp.isoformat()),
-        )
+        # Amend commit to set dates and optionally author/committer identity
+        commit_args = [
+            "git",
+            "commit",
+            "--amend",
+            "--date",
+            timestamp.isoformat(),
+            "--no-edit",
+        ]
+        env_vars = dict(os.environ, GIT_COMMITTER_DATE=timestamp.isoformat())
+        if author is not None:
+            author_name, author_email = author
+            commit_args.extend(["--author", f"{author_name} <{author_email}>"])
+            env_vars.update(
+                {
+                    "GIT_AUTHOR_NAME": author_name,
+                    "GIT_AUTHOR_EMAIL": author_email,
+                    "GIT_COMMITTER_NAME": author_name,
+                    "GIT_COMMITTER_EMAIL": author_email,
+                }
+            )
+        call_command(commit_args, env=env_vars)
         last_timestamp = timestamp
         call_command(["git", "rebase", "--continue"])
 
@@ -210,6 +221,19 @@ def normalize_commit(commit: str) -> str:
 
 def is_equal(commitish_a: str, commitish_b: str) -> bool:
     return normalize_commit(commitish_a) == normalize_commit(commitish_b)
+
+
+def parse_author(authorish: str) -> tuple[str, str]:
+    """Parse an author string of the form "Name:email" into a tuple.
+
+    Returns (name, email) or raises ValueError if invalid.
+    """
+    name, sep, email = authorish.partition(":")
+    name = name.strip()
+    email = email.strip()
+    if sep != ":" or not name or not email:
+        raise ValueError('Invalid --author value. Use "Name:email"')
+    return name, email
 
 
 def main() -> None:
@@ -250,6 +274,11 @@ def main() -> None:
         choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
         default="WARNING",
     )
+    parser.add_argument(
+        "--author",
+        type=str,
+        help='Set author and committer identity for rewritten commits in the format "Name:email"',
+    )
     args = parser.parse_args()
 
     if args.business_hours and args.no_business_hours:
@@ -261,6 +290,14 @@ def main() -> None:
         format="[%(levelname)s] %(message)s",
     )
     logger = logging.getLogger("main")
+
+    author_tuple: tuple[str, str] | None = None
+    if args.author:
+        try:
+            author_tuple = parse_author(args.author)
+        except ValueError as exc:
+            print(str(exc))
+            sys.exit(1)
 
     commits = [normalize_commit(c) for c in get_commits(args.commits)]
     logger.info(f"Found {len(commits)} commits to backdate")
@@ -314,6 +351,7 @@ def main() -> None:
             no_business_hours=args.no_business_hours,
             except_days=except_days,
             root=is_root_rebase,
+            author=author_tuple,
         )
     except Exception:
         if rebase_in_progress():

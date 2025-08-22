@@ -21,6 +21,7 @@ a range of dates.
   your current `HEAD`.
 - Sets author date and committer date so you don't have to look up how to set both of them every time you fudge a commit
   timestamp.
+- Optionally set author and committer identity for rewritten commits via `--author "Name:email"`.
 - Python, but with near-zero dependencies (see below; only `sed` and `date`), so you can just download and run it
   without Python package management making you sad.
 
@@ -43,6 +44,12 @@ Backdate only the current commit to a human readable time:
 
 ```shell
 git backdate HEAD "5 hours ago"
+```
+
+Set the author and committer identity for all rewritten commits:
+
+```shell
+git backdate 11abe2..3d13f 2023-07-10 --author "Jane Doe:jane@example.com"
 ```
 
 Use ALL the features, e.g. excluding weekends and specific days and backdating only a range of commits:
